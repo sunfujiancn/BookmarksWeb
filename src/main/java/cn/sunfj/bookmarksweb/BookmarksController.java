@@ -2,10 +2,11 @@ package cn.sunfj.bookmarksweb;
 
 import com.alibaba.fastjson.JSON;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * @author sunfujian
@@ -14,36 +15,63 @@ import java.util.Optional;
 
 @RestController
 public class BookmarksController {
-    
+
     @Autowired
-    private BookmarkRepository repository;
+    BookmarkDao bookmarkDao;
     
     @PostMapping("/add")
-    public String addMarks(@RequestBody Bookmark bookmark) {
+    public String add(@RequestBody Bookmark bookmark) {
+        bookmark.setDateAdded(System.currentTimeMillis());
+        bookmark.setDateUpdated(System.currentTimeMillis());
         System.out.println(JSON.toJSONString(bookmark, true));
-        repository.save(bookmark);
+        bookmarkDao.save(bookmark);
+        return "OK";
+    }
+
+    @PostMapping("/push/list")
+    public String pushAll(@RequestBody Bookmark bookmark) {
+        System.out.println(JSON.toJSONString(bookmark, true));
+        bookmarkDao.save(bookmark);
         return "OK";
     }
     
     @GetMapping("/delete/{id}")
-    public String deleteMarks(@PathVariable String id) {
-        repository.deleteById(id);
-        System.out.println("id:"+id);
+    public String delete(@PathVariable String id) {
+        bookmarkDao.deleteById(id);
+        System.out.println("delete id:"+id);
         return "OK";
     }
     
     @PostMapping("/change/{id}")
-    public String changeMarks(@RequestBody Bookmark bookmark, @PathVariable String id) {
+    public String change(@RequestBody Bookmark bookmark, @PathVariable String id) {
         System.out.println("id:"+id +"----"+JSON.toJSONString(bookmark, true));
-        Optional<Bookmark> bk = repository.findById(id);
-        repository.saveAndFlush(bookmark);
+//        Optional<Bookmark> bk = repository.findById(id);
+//        bookmarkDao.saveAndFlush(bookmark);
+//        bookmarkDao.changeBookmarkById(id, bookmark);
         
         return "OK";
     }
     
     @PostMapping("/move")
-    public String moveMarks(@RequestBody Map moveInfo) {
+    public String move(@RequestBody Map moveInfo) {
         System.out.println(JSON.toJSONString(moveInfo, true));
         return "OK";
+    }
+
+    @GetMapping("/find/list")
+    public String getAll() {
+        List<Bookmark> allBk = bookmarkDao.findAll(Sort.by("id"));
+        return allBk.toString();
+    }
+
+    @GetMapping("/version")
+    public int getVersion() {
+        return bookmarkDao.findById("version").get().index;
+    }
+
+    public Bookmark updateVersion() {
+        Bookmark bk = bookmarkDao.findById("version").get();
+        bk.index += 1;
+        return bookmarkDao.save(bk);
     }
 }
